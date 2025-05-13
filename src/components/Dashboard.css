@@ -1,0 +1,11 @@
+.dashboard-container {
+    padding: 2rem;
+    background-color: #f9f9f9;
+  }
+  
+  .dashboard-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
