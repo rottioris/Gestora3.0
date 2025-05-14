@@ -50,7 +50,7 @@ const Dashboard = ({ onLogout }) => {
     }
   }, []);
 
-  const fetchProductos = async () => {
+  const fetchProductos = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('productos')
@@ -59,20 +59,10 @@ const Dashboard = ({ onLogout }) => {
 
       if (error) throw error;
       setProductos(data || []);
-
-      // Verificar productos con bajo stock
-      const productosBajoStock = data.filter(p => p.stock < 10);
-      productosBajoStock.forEach(producto => {
-        addNotification(
-          `Producto "${producto.nombre}" con bajo stock (${producto.stock} unidades)`,
-          'warning',
-          producto.id
-        );
-      });
     } catch (error) {
       console.error('Error fetching products:', error);
     }
-  };
+  }, []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -96,13 +86,33 @@ const Dashboard = ({ onLogout }) => {
         valorTotal
       });
 
-      // Notificar sobre stock bajo
-      if (stockBajo > 0) {
-        addNotification(`${stockBajo} productos con stock bajo`, 'warning');
+      // Verificar cambios en el estado del stock
+      const productosSinStock = productos.filter(p => p.stock === 0);
+      const productosBajoStock = productos.filter(p => p.stock < 10 && p.stock > 0);
+
+      // Solo notificar si hay cambios en el estado del stock
+      if (productosSinStock.length > 0) {
+        const mensajeSinStock = productosSinStock
+          .map(p => `${p.nombre} (${p.stock} unidades)`)
+          .join('\n');
+        addNotification(
+          `Productos sin stock:\n${mensajeSinStock}`,
+          'error',
+          8000
+        );
       }
-      if (sinStock > 0) {
-        addNotification(`${sinStock} productos sin stock`, 'error');
+
+      if (productosBajoStock.length > 0) {
+        const mensajeBajoStock = productosBajoStock
+          .map(p => `${p.nombre} (${p.stock} unidades)`)
+          .join('\n');
+        addNotification(
+          `Productos con bajo stock:\n${mensajeBajoStock}`,
+          'warning',
+          8000
+        );
       }
+
     } catch (error) {
       console.error('Error fetching stats:', error);
       addNotification('Error al cargar las estadísticas', 'error');
@@ -111,27 +121,39 @@ const Dashboard = ({ onLogout }) => {
     }
   }, [addNotification]);
 
+  // Usar un intervalo para actualizar las estadísticas cada 30 segundos
   useEffect(() => {
     fetchProductos();
     fetchMovimientos();
     fetchStats();
+
+    const intervalId = setInterval(() => {
+      fetchStats();
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(intervalId);
   }, [fetchProductos, fetchMovimientos, fetchStats]);
 
-  const handleNotificationClick = () => {
+  const handleNotificationClick = useCallback(() => {
+    const productosSinStock = productos.filter(p => p.stock === 0);
+    const productosBajoStock = productos.filter(p => p.stock < 10 && p.stock > 0);
+    
     let mensaje = '';
-    if (stats.stockBajo > 0) {
-      mensaje += `⚠️ ${stats.stockBajo} productos con stock bajo\n`;
+    
+    if (productosSinStock.length > 0) {
+      mensaje += `❌ Productos sin stock:\n${productosSinStock.map(p => `${p.nombre} (${p.stock} unidades)`).join('\n')}\n\n`;
     }
-    if (stats.sinStock > 0) {
-      mensaje += `❌ ${stats.sinStock} productos sin stock`;
+    
+    if (productosBajoStock.length > 0) {
+      mensaje += `⚠️ Productos con bajo stock:\n${productosBajoStock.map(p => `${p.nombre} (${p.stock} unidades)`).join('\n')}`;
     }
     
     if (mensaje) {
-      addNotification(mensaje, 'info');
+      addNotification(mensaje, 'info', 8000);
     } else {
-      addNotification('✅ Todo el stock está en orden', 'success');
+      addNotification('✅ Todo el stock está en orden', 'success', 5000);
     }
-  };
+  }, [productos, addNotification]);
 
   const exportarReporteCompleto = () => {
     const doc = new jsPDF();
@@ -321,47 +343,47 @@ const Dashboard = ({ onLogout }) => {
                 <h2 className="chart-title">Top 5 Productos por Stock</h2>
               </div>
               <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stockData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="nombre" />
                     <YAxis yAxisId="left" orientation="left" stroke="#2563eb" />
                     <YAxis yAxisId="right" orientation="right" stroke="#10b981" />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend />
+                  <Legend />
                     <Bar yAxisId="left" dataKey="stock" name="Stock" fill="#2563eb" />
                     <Bar yAxisId="right" dataKey="valor" name="Valor Total" fill="#10b981" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
+          </div>
 
             <div className="chart-card">
               <div className="chart-header">
                 <h2 className="chart-title">Distribución de Movimientos</h2>
-              </div>
+          </div>
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={movimientosData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
+                <PieChart>
+                  <Pie
+                    data={movimientosData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {movimientosData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
+                  >
+                    {movimientosData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
+          </div>
           </div>
 
           <div className="charts-grid">
