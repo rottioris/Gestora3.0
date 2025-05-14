@@ -1,54 +1,94 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../Supabase/client'; // Path
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../Supabase/client';
+import { useNotification } from '../context/NotificationContext';
 import './Login.css';
 
-function Register() {
+const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    });
+    if (password !== confirmPassword) {
+      addNotification('Las contraseñas no coinciden', 'error');
+      setLoading(false);
+      return;
+    }
 
-    if (error) {
-      alert('Error al registrarse: ' + error.message);
-    } else {
-      alert('Registro exitoso. Revisa tu correo para confirmar la cuenta.');
-      navigate('/login'); // Redirige al login después de registrarse
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        addNotification(error.message, 'error');
+        return;
+      }
+
+      addNotification('¡Registro exitoso! Por favor, verifica tu correo electrónico.', 'success');
+      navigate('/login');
+    } catch (error) {
+      addNotification('Error al registrar usuario', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      <form className="login-form" onSubmit={handleRegister}>
-        <h2>Crear cuenta</h2>
-        <input
-          type="email"
-          placeholder="Correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña (mínimo 6 caracteres)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" className="action-button">Registrarse</button>
-        <p>
-          ¿Ya tienes una cuenta? <Link to="/">Inicia sesión</Link>
+      <div className="login-box">
+        <h2>Registro</h2>
+        <form onSubmit={handleRegister}>
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength="6"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirmar Contraseña</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength="6"
+            />
+          </div>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Registrando...' : 'Registrarse'}
+          </button>
+        </form>
+        <p className="register-link">
+          ¿Ya tienes una cuenta? <a href="/login">Inicia sesión aquí</a>
         </p>
-      </form>
+      </div>
     </div>
   );
-}
+};
 
 export default Register;

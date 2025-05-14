@@ -1,59 +1,76 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../Supabase/client';
 import './Login.css';
 
-function Login() {
+const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (error) {
-      alert('Error al iniciar sesión: ' + error.message);
-    } else {
-      alert('Inicio de sesión exitoso');
-      navigate('/productos');
+      if (error) throw error;
+      navigate('/dashboard');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      <form className="login-form" onSubmit={handleLogin}>
-        <h2>Iniciar sesión en Gestora</h2>
-        <input
-          type="email"
-          placeholder="Correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña (mínimo 6 caracteres)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <p>
-          Al hacer clic en "Iniciar sesión", aceptas los <br />
-          <strong>Términos de uso, Política de privacidad y Política de cookies de Gestora</strong>.
+      <div className="login-card">
+        <h2>Iniciar Sesión</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Ingresa tu correo electrónico"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Ingresa tu contraseña"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+        <p className="mt-3 text-center">
+          ¿No tienes una cuenta?{' '}
+          <Link to="/register" className="text-primary">
+            Regístrate aquí
+          </Link>
         </p>
-        <button type="submit" className="action-button">Iniciar sesión</button>
-
-        <p>
-          ¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link>
-        </p>
-      </form>
+      </div>
     </div>
   );
-}
+};
 
 export default Login;

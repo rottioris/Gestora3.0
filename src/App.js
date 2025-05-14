@@ -6,6 +6,8 @@ import Register from './components/Register';
 import ProductList from './components/ProductList';
 import Dashboard from './components/Dashboard';
 import Historial from './components/Historial';
+import ErrorBoundary from './components/ErrorBoundary';
+import { NotificationProvider } from './context/NotificationContext';
 import './styles/buttons.css';
 import './styles/global.css';
 
@@ -34,16 +36,20 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={!user ? <Login /> : <Navigate to="/productos" />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/productos" />} />
-        <Route path="/productos" element={user ? <ProductList onLogout={handleLogout} /> : <Navigate to="/" />} />
-        <Route path="/dashboard" element={user ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />} />
-        <Route path="/historial" element={user ? <Historial onLogout={handleLogout} /> : <Navigate to="/" />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={!user ? <Login /> : <Navigate to="/productos" />} />
+            <Route path="/register" element={!user ? <Register /> : <Navigate to="/productos" />} />
+            <Route path="/productos" element={user ? <ProductList onLogout={handleLogout} /> : <Navigate to="/" />} />
+            <Route path="/dashboard" element={user ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />} />
+            <Route path="/historial" element={user ? <Historial onLogout={handleLogout} /> : <Navigate to="/" />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </Router>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 }
 

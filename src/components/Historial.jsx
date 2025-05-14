@@ -1,33 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../Supabase/client';
-import { FaDownload, FaBox, FaThList, FaHistory } from 'react-icons/fa';
+import { FaBox, FaThList, FaHistory, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../context/NotificationContext';
+import './Historial.css';
+import '../styles/Sidebar.css';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const Historial = ({ onLogout }) => {
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
   const [movimientos, setMovimientos] = useState([]);
   const [filter, setFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMovimientos();
-  }, []);
-
-  const fetchMovimientos = async () => {
+  const fetchMovimientos = useCallback(async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
-        .from('movimientos')
-        .select('*')
+        .from('historial')
+        .select(`
+          *,
+          productos (
+            nombre,
+            categoria_id,
+            categorias (
+              nombre
+            )
+          )
+        `)
         .order('fecha', { ascending: false });
 
       if (error) throw error;
       setMovimientos(data || []);
     } catch (error) {
       console.error('Error fetching movements:', error);
+      addNotification('Error al cargar el historial', 'error');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [addNotification]);
+
+  useEffect(() => {
+    fetchMovimientos();
+  }, [fetchMovimientos]);
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -36,8 +54,8 @@ const Historial = ({ onLogout }) => {
     const tableColumn = ['Fecha', 'Tipo', 'Producto', 'Cantidad', 'Usuario'];
     const tableRows = filteredMovimientos.map(mov => [
       new Date(mov.fecha).toLocaleDateString(),
-      mov.tipo,
-      mov.producto,
+      mov.tipo_movimiento,
+      mov.productos?.nombre,
       mov.cantidad,
       mov.usuario
     ]);
@@ -54,11 +72,14 @@ const Historial = ({ onLogout }) => {
     doc.save('historial_movimientos.pdf');
   };
 
-  const filteredMovimientos = movimientos.filter(mov => {
-    const matchesFilter = filter === 'todos' || mov.tipo === filter;
-    const matchesSearch = mov.producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         mov.usuario.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+  const filteredMovimientos = movimientos.filter(movimiento => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      movimiento.productos?.nombre.toLowerCase().includes(searchLower) ||
+      movimiento.tipo_movimiento.toLowerCase().includes(searchLower) ||
+      movimiento.observaciones.toLowerCase().includes(searchLower) ||
+      movimiento.cantidad.toString().includes(searchLower)
+    );
   });
 
   return (
@@ -92,7 +113,7 @@ const Historial = ({ onLogout }) => {
           <div className="header">
             <h1>Historial de Movimientos</h1>
             <button className="btn btn-secondary" onClick={exportToPDF}>
-              <FaDownload /> Exportar PDF
+              <FaSearch /> Exportar PDF
             </button>
           </div>
 
@@ -118,13 +139,13 @@ const Historial = ({ onLogout }) => {
                   className={`btn ${filter === 'entrada' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setFilter('entrada')}
                 >
-                  Entradas
+                  <span role="img" aria-label="entrada">📥</span> Entradas
                 </button>
                 <button
                   className={`btn ${filter === 'salida' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setFilter('salida')}
                 >
-                  Salidas
+                  <span role="img" aria-label="salida">📤</span> Salidas
                 </button>
               </div>
             </div>
@@ -145,11 +166,11 @@ const Historial = ({ onLogout }) => {
                     <tr key={mov.id}>
                       <td>{new Date(mov.fecha).toLocaleDateString()}</td>
                       <td>
-                        <span className={`badge ${mov.tipo === 'entrada' ? 'badge-success' : 'badge-danger'}`}>
-                          {mov.tipo}
+                        <span className={`badge ${mov.tipo_movimiento === 'entrada' ? 'badge-success' : 'badge-danger'}`}>
+                          {mov.tipo_movimiento}
                         </span>
                       </td>
-                      <td>{mov.producto}</td>
+                      <td>{mov.productos?.nombre}</td>
                       <td>{mov.cantidad}</td>
                       <td>{mov.usuario}</td>
                     </tr>
