@@ -1,0 +1,105 @@
+.join-gestora-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #fff;
+  gap: 4rem;
+}
+
+.form-section {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 2.5rem 2rem;
+  min-width: 320px;
+  max-width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.join-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.join-form h2 {
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.join-form input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.join-form input:focus {
+  border: 1.5px solid #333;
+}
+
+.error {
+  color: #d32f2f;
+  font-size: 0.9rem;
+  margin-top: -0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.terms {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.terms b {
+  color: #222;
+}
+
+.join-btn {
+  width: 100%;
+  padding: 0.9rem 0;
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.join-btn:hover {
+  background: #222;
+}
+
+.icon-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cube-icon {
+  font-size: 8rem;
+  color: #555;
+  opacity: 0.8;
+}
+
+@media (max-width: 900px) {
+  .join-gestora-container {
+    flex-direction: column;
+    gap: 2rem;
+    height: auto;
+    padding: 2rem 0;
+  }
+  .icon-section {
+    margin-top: 1rem;
+  }
+} 
