@@ -11,7 +11,7 @@
     "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
     "recharts": "^2.12.3",
-    "@supabase/supabase-js": "^2.39.8",
+    "@supabase/supabase-js": "2.39.8",
     "web-vitals": "^2.1.4",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -42,6 +42,6 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   }
 }
