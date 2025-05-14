@@ -3,25 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.3",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.6.7",
-    "inventario-frontend": "file:",
-    "jspdf": "^3.0.1",
-    "jspdf-autotable": "^5.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^4.12.0",
-    "react-router-dom": "^6.22.1",
+    "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
-    "recharts": "^2.12.0",
-    "web-vitals": "^2.1.4"
+    "recharts": "^2.12.3",
+    "supabase-js": "^2.39.8",
+    "web-vitals": "^2.1.4",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "react-icons": "^5.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "export NODE_OPTIONS=--openssl-legacy-provider && FAST_REFRESH=true react-scripts start",
+    "build": "export NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -42,5 +40,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "resolutions": {
+    "@babel/plugin-transform-private-property-in-object": "^7.23.4",
+    "postcss": "^8.4.35",
+    "nth-check": "^2.1.1",
+    "svgo": "^3.2.0"
   }
 }

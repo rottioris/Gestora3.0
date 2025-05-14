@@ -95,8 +95,8 @@ body {
 
 .sidebar-nav-item:hover,
 .sidebar-nav-item.active {
-  background: var(--secondary-color);
-  color: var(--primary-dark);
+  background: #ffffff;
+  color: #4a90e2;
 }
 
 .sidebar-footer {
@@ -135,13 +135,11 @@ body {
 
 /* Tarjetas */
 .card {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: var(--card-shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
-  margin-bottom: var(--spacing-md);
-  border: 1px solid var(--border-color);
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
 }
 
 .card:hover {
@@ -361,4 +359,28 @@ h3 {
 
 .btn-secondary:hover {
   background-color: #3da066;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 1rem;
+}
+
+.login-card {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
 } 
