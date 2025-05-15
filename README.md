@@ -1,3 +1,9 @@
+![Logo de Gestora 3.0](public/Ges.logo.png)
+
+# Gestora 3.0
+
+Aplicación de gestión desarrollada en React. Incluye notificaciones automáticas, validación de productos, y mejoras de experiencia de usuario.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
