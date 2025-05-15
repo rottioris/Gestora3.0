@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../Supabase/client';
-import { FaBox, FaThList, FaHistory, FaSignOutAlt, FaSearch } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaSearch, FaThList, FaBox, FaHistory, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../context/NotificationContext';
+import { useOffline } from '../context/OfflineContext';
+import ConnectionStatus from './ConnectionStatus';
 import './Historial.css';
 import '../styles/Sidebar.css';
 import jsPDF from 'jspdf';
@@ -10,54 +10,39 @@ import 'jspdf-autotable';
 
 const Historial = ({ onLogout }) => {
   const navigate = useNavigate();
-  const { addNotification } = useNotification();
-  const [movimientos, setMovimientos] = useState([]);
-  const [filter, setFilter] = useState('todos');
+  const { historial, isLoading, isOnline } = useOffline();
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  const fetchMovimientos = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('historial')
-        .select(`
-          *,
-          productos (
-            nombre,
-            categoria_id,
-            categorias (
-              nombre
-            )
-          )
-        `)
-        .order('fecha', { ascending: false });
+  // Usar useMemo para filtrar el historial
+  const filteredHistorial = useMemo(() => {
+    if (!historial) return [];
+    
+    const searchLower = searchTerm.toLowerCase();
+    return historial.filter(entry => {
+      const fecha = new Date(entry.fecha).toLocaleString().toLowerCase();
+      const tipo = entry.tipo_movimiento.toLowerCase();
+      const cantidad = entry.cantidad.toString();
+      const observaciones = (entry.observaciones || '').toLowerCase();
 
-      if (error) throw error;
-      setMovimientos(data || []);
-    } catch (error) {
-      console.error('Error fetching movements:', error);
-      addNotification('Error al cargar el historial', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addNotification]);
-
-  useEffect(() => {
-    fetchMovimientos();
-  }, [fetchMovimientos]);
+      return (
+        fecha.includes(searchLower) ||
+        tipo.includes(searchLower) ||
+        cantidad.includes(searchLower) ||
+        observaciones.includes(searchLower)
+      );
+    }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); // Ordenar por fecha más reciente
+  }, [historial, searchTerm]);
 
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text('Historial de Movimientos', 14, 15);
     
-    const tableColumn = ['Fecha', 'Tipo', 'Producto', 'Cantidad', 'Usuario'];
-    const tableRows = filteredMovimientos.map(mov => [
-      new Date(mov.fecha).toLocaleDateString(),
+    const tableColumn = ['Fecha', 'Tipo', 'Cantidad', 'Observaciones'];
+    const tableRows = filteredHistorial.map(mov => [
+      new Date(mov.fecha).toLocaleString(),
       mov.tipo_movimiento,
-      mov.productos?.nombre,
       mov.cantidad,
-      mov.usuario
+      mov.observaciones || '-'
     ]);
 
     doc.autoTable({
@@ -72,15 +57,14 @@ const Historial = ({ onLogout }) => {
     doc.save('historial_movimientos.pdf');
   };
 
-  const filteredMovimientos = movimientos.filter(movimiento => {
-    const searchLower = searchTerm.toLowerCase();
+  if (isLoading) {
     return (
-      movimiento.productos?.nombre.toLowerCase().includes(searchLower) ||
-      movimiento.tipo_movimiento.toLowerCase().includes(searchLower) ||
-      movimiento.observaciones.toLowerCase().includes(searchLower) ||
-      movimiento.cantidad.toString().includes(searchLower)
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Cargando historial...</p>
+      </div>
     );
-  });
+  }
 
   return (
     <div className="app-container">
@@ -91,18 +75,20 @@ const Historial = ({ onLogout }) => {
         </div>
         <nav className="sidebar-nav">
           <p className="sidebar-nav-item" onClick={() => navigate('/dashboard')}>
-            <FaThList /> Dashboard
+            <FaThList /> <span>Dashboard</span>
           </p>
           <p className="sidebar-nav-item" onClick={() => navigate('/productos')}>
-            <FaBox /> Productos
+            <FaBox /> <span>Productos</span>
           </p>
           <p className="sidebar-nav-item active" onClick={() => navigate('/historial')}>
-            <FaHistory /> Historial
+            <FaHistory /> <span>Historial</span>
           </p>
         </nav>
         <div className="sidebar-footer">
-          <p className="logout-button sidebar-logout" onClick={onLogout}>
-            🔓 Cerrar sesión
+          <p className="sidebar-logout" onClick={onLogout}>
+            <span>
+              <FaSignOutAlt /> Cerrar sesión
+            </span>
           </p>
         </div>
       </aside>
@@ -117,66 +103,62 @@ const Historial = ({ onLogout }) => {
             </button>
           </div>
 
-          <div className="card">
-            <div className="filters-container">
-              <div className="search-container">
-                <input
-                  type="text"
-                  className="search-bar"
-                  placeholder="Buscar en historial..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="filter-buttons">
-                <button
-                  className={`btn ${filter === 'todos' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilter('todos')}
-                >
-                  Todos
-                </button>
-                <button
-                  className={`btn ${filter === 'entrada' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilter('entrada')}
-                >
-                  <span role="img" aria-label="entrada">📥</span> Entradas
-                </button>
-                <button
-                  className={`btn ${filter === 'salida' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilter('salida')}
-                >
-                  <span role="img" aria-label="salida">📤</span> Salidas
-                </button>
-              </div>
-            </div>
+          <div className="content-grid">
+            <ConnectionStatus />
 
-            <div className="table-responsive">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Usuario</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMovimientos.map((mov) => (
-                    <tr key={mov.id}>
-                      <td>{new Date(mov.fecha).toLocaleDateString()}</td>
-                      <td>
-                        <span className={`badge ${mov.tipo_movimiento === 'entrada' ? 'badge-success' : 'badge-danger'}`}>
-                          {mov.tipo_movimiento}
-                        </span>
-                      </td>
-                      <td>{mov.productos?.nombre}</td>
-                      <td>{mov.cantidad}</td>
-                      <td>{mov.usuario}</td>
+            <div className="historial-section">
+              <div className="search-section">
+                <div className="search-container">
+                  <FaSearch className="search-icon" />
+                  <input
+                    type="text"
+                    className="search-bar"
+                    placeholder="Buscar en el historial..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="search-info">
+                  <span className="search-results">
+                    {filteredHistorial.length} resultados encontrados
+                  </span>
+                </div>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>Cantidad</th>
+                      <th>Observaciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredHistorial.length > 0 ? (
+                      filteredHistorial.map((entry) => (
+                        <tr key={entry.id}>
+                          <td>{new Date(entry.fecha).toLocaleString()}</td>
+                          <td>
+                            <span className={`movement-type ${entry.tipo_movimiento.toLowerCase()}`}>
+                              {entry.tipo_movimiento}
+                            </span>
+                          </td>
+                          <td>{entry.cantidad}</td>
+                          <td>{entry.observaciones || '-'}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="no-results">
+                          No se encontraron movimientos
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

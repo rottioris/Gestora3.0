@@ -9,6 +9,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useNotification } from '../context/NotificationContext';
+import { useOffline } from '../context/OfflineContext';
 import './Dashboard.css';
 import '../styles/Sidebar.css';
 
@@ -28,14 +29,8 @@ const Dashboard = ({ onLogout }) => {
   const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
-  const [stats, setStats] = useState({
-    totalProductos: 0,
-    stockBajo: 0,
-    sinStock: 0,
-    valorTotal: 0
-  });
+  const { stats, isOnline } = useOffline();
   const { addNotification } = useNotification();
-  const [loading, setLoading] = useState(true);
 
   const fetchMovimientos = useCallback(async () => {
     const { data, error } = await supabase
@@ -64,75 +59,18 @@ const Dashboard = ({ onLogout }) => {
     }
   }, []);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data: productos, error } = await supabase
-        .from('productos')
-        .select('*');
-
-      if (error) throw error;
-
-      // Calcular estadísticas
-      const totalProductos = productos.length;
-      const stockBajo = productos.filter(p => p.stock < 10 && p.stock > 0).length;
-      const sinStock = productos.filter(p => p.stock === 0).length;
-      const valorTotal = productos.reduce((sum, p) => sum + (p.precio * p.stock), 0);
-
-      setStats({
-        totalProductos,
-        stockBajo,
-        sinStock,
-        valorTotal
-      });
-
-      // Verificar cambios en el estado del stock
-      const productosSinStock = productos.filter(p => p.stock === 0);
-      const productosBajoStock = productos.filter(p => p.stock < 10 && p.stock > 0);
-
-      // Solo notificar si hay cambios en el estado del stock
-      if (productosSinStock.length > 0) {
-        const mensajeSinStock = productosSinStock
-          .map(p => `${p.nombre} (${p.stock} unidades)`)
-          .join('\n');
-        addNotification(
-          `Productos sin stock:\n${mensajeSinStock}`,
-          'error',
-          8000
-        );
-      }
-
-      if (productosBajoStock.length > 0) {
-        const mensajeBajoStock = productosBajoStock
-          .map(p => `${p.nombre} (${p.stock} unidades)`)
-          .join('\n');
-        addNotification(
-          `Productos con bajo stock:\n${mensajeBajoStock}`,
-          'warning',
-          8000
-        );
-      }
-
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      addNotification('Error al cargar las estadísticas', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addNotification]);
-
-  // Usar un intervalo para actualizar las estadísticas cada 30 segundos
+  // Usar un intervalo para actualizar los datos cada 30 segundos
   useEffect(() => {
     fetchProductos();
     fetchMovimientos();
-    fetchStats();
 
     const intervalId = setInterval(() => {
-      fetchStats();
+      fetchProductos();
+      fetchMovimientos();
     }, 30000); // 30 segundos
 
     return () => clearInterval(intervalId);
-  }, [fetchProductos, fetchMovimientos, fetchStats]);
+  }, [fetchProductos, fetchMovimientos]);
 
   const handleNotificationClick = useCallback(() => {
     const productosSinStock = productos.filter(p => p.stock === 0);
@@ -164,10 +102,10 @@ const Dashboard = ({ onLogout }) => {
     doc.text('Resumen General', 14, 35);
 
     const resumen = [
-      ["Total Productos", stats.totalProductos],
-      ["Stock Bajo", stats.stockBajo],
-      ["Sin Stock", stats.sinStock],
-      ["Valor Total", formatCurrency(stats.valorTotal)]
+      ["Total Productos", stats.totalProducts],
+      ["Stock Bajo", stats.lowStock],
+      ["Sin Stock", stats.outOfStock],
+      ["Valor Total", formatCurrency(stats.totalValue)]
     ];
 
     resumen.forEach((item, index) => {
@@ -223,14 +161,14 @@ const Dashboard = ({ onLogout }) => {
     }));
 
   const movimientosData = [
-    { name: 'Recibidos', value: movimientos.filter(m => m.tipo_movimiento === 'Ingreso').length },
-    { name: 'Enviados', value: movimientos.filter(m => m.tipo_movimiento === 'Salida').length },
+    { name: 'Entradas', value: 4 },
+    { name: 'Salidas', value: 2 }
   ];
 
   const chartData = [
-    { name: 'Productos', value: stats.totalProductos },
-    { name: 'Stock Bajo', value: stats.stockBajo },
-    { name: 'Sin Stock', value: stats.sinStock }
+    { name: 'Productos', value: stats.totalProducts },
+    { name: 'Stock Bajo', value: stats.lowStock },
+    { name: 'Sin Stock', value: stats.outOfStock }
   ];
 
   // Datos para la gráfica de tendencias
@@ -296,6 +234,11 @@ const Dashboard = ({ onLogout }) => {
                 <FaBell />
               </button>
             </div>
+            {!isOnline && (
+              <div className="offline-badge">
+                Modo Offline
+              </div>
+            )}
           </div>
 
           <div className="stats-grid">
@@ -305,7 +248,7 @@ const Dashboard = ({ onLogout }) => {
               </div>
               <div className="stats-info">
                 <div className="stats-label">Total Productos</div>
-                <div className="stats-value">{stats.totalProductos}</div>
+                <div className="stats-value">{stats.totalProducts}</div>
               </div>
             </div>
             <div className="stats-card">
@@ -314,7 +257,7 @@ const Dashboard = ({ onLogout }) => {
               </div>
               <div className="stats-info">
                 <div className="stats-label">Stock Bajo</div>
-                <div className="stats-value">{stats.stockBajo}</div>
+                <div className="stats-value">{stats.lowStock}</div>
               </div>
             </div>
             <div className="stats-card">
@@ -323,7 +266,7 @@ const Dashboard = ({ onLogout }) => {
               </div>
               <div className="stats-info">
                 <div className="stats-label">Sin Stock</div>
-                <div className="stats-value">{stats.sinStock}</div>
+                <div className="stats-value">{stats.outOfStock}</div>
               </div>
             </div>
             <div className="stats-card">
@@ -332,7 +275,7 @@ const Dashboard = ({ onLogout }) => {
               </div>
               <div className="stats-info">
                 <div className="stats-label">Valor Total</div>
-                <div className="stats-value">{formatCurrency(stats.valorTotal)}</div>
+                <div className="stats-value">{formatCurrency(stats.totalValue)}</div>
               </div>
             </div>
           </div>
@@ -343,47 +286,47 @@ const Dashboard = ({ onLogout }) => {
                 <h2 className="chart-title">Top 5 Productos por Stock</h2>
               </div>
               <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stockData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="nombre" />
                     <YAxis yAxisId="left" orientation="left" stroke="#2563eb" />
                     <YAxis yAxisId="right" orientation="right" stroke="#10b981" />
                     <Tooltip content={<CustomTooltip />} />
-                  <Legend />
+                    <Legend />
                     <Bar yAxisId="left" dataKey="stock" name="Stock" fill="#2563eb" />
                     <Bar yAxisId="right" dataKey="valor" name="Valor Total" fill="#10b981" />
-                </BarChart>
-              </ResponsiveContainer>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
 
             <div className="chart-card">
               <div className="chart-header">
                 <h2 className="chart-title">Distribución de Movimientos</h2>
-          </div>
+              </div>
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={movimientosData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
+                  <PieChart>
+                    <Pie
+                      data={movimientosData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {movimientosData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
+                    >
+                      {movimientosData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
           </div>
 
           <div className="charts-grid">

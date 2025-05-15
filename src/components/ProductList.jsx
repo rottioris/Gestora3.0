@@ -1,131 +1,120 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../Supabase/client';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaBox, FaThList, FaHistory, FaSignOutAlt, FaTimes } from 'react-icons/fa';
+import React, { useEffect, useState, useMemo } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaBox, FaThList, FaHistory, FaSignOutAlt, FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../context/NotificationContext';
+import { useOffline } from '../context/OfflineContext';
+import ConnectionStatus from './ConnectionStatus';
 import './ProductList.css';
 import '../styles/Sidebar.css';
+
+const ITEMS_PER_PAGE = 10;
 
 const ProductList = ({ onLogout }) => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const { products, categories, isLoading, updateProducts } = useOffline();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProduct, setEditingProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     nombre: '',
     stock: '',
     precio: '',
-    categoria_id: ''
+    categoria_id: '',
+    descripcion: ''
   });
   const [showForm, setShowForm] = useState(false);
   const initialFormState = {
     nombre: '',
     stock: '',
     precio: '',
-    categoria_id: ''
+    categoria_id: '',
+    descripcion: ''
   };
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('productos')
-        .select('*')
-        .order('nombre');
+  // Memoizar los productos filtrados para evitar recálculos innecesarios
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return products;
 
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      addNotification('Error al cargar los productos', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addNotification]);
+    const searchTerms = searchTerm.toLowerCase().trim().split(/\s+/);
+    
+    return products.filter(product => {
+      // Caso especial para búsqueda de stock 0
+      if (searchTerm.trim() === '0') {
+        return product.stock === 0;
+      }
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categorias')
-        .select('*')
-        .order('nombre');
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      addNotification('Error al cargar las categorías', 'error');
-    }
-  }, [addNotification]);
+      const categoria = categories.find(cat => cat.id === product.categoria_id)?.nombre || '';
+      const productValues = [
+        product.nombre.toLowerCase(),
+        categoria.toLowerCase(),
+        product.stock.toString(),
+        product.precio.toString(),
+        (product.descripcion || '').toLowerCase()
+      ];
 
+      // Verificar si todos los términos de búsqueda están presentes en algún valor del producto
+      return searchTerms.every(term => 
+        productValues.some(value => value.includes(term))
+      );
+    });
+  }, [products, categories, searchTerm]);
+
+  // Calcular productos paginados
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+
+  // Calcular total de páginas
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  // Resetear la página cuando cambia el término de búsqueda
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, [fetchProducts, fetchCategories]);
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const productData = {
-        nombre: formData.nombre,
-        stock: parseInt(formData.stock),
-        precio: parseFloat(formData.precio),
-        categoria_id: parseInt(formData.categoria_id)
-      };
-
       if (editingProduct) {
-        const { error } = await supabase
-          .from('productos')
-          .update(productData)
-          .eq('id', editingProduct.id);
-        if (error) throw error;
+        // Modo edición
+        const updatedProduct = {
+          ...editingProduct,
+          nombre: formData.nombre,
+          categoria_id: parseInt(formData.categoria_id),
+          stock: parseInt(formData.stock),
+          precio: parseFloat(formData.precio),
+          descripcion: formData.descripcion
+        };
 
-        // Registrar el movimiento de actualización
-        const { error: movimientoError } = await supabase
-          .from('historial')
-          .insert([{
-            producto_id: editingProduct.id,
-            tipo_movimiento: 'salida',
-            cantidad: Math.abs(productData.stock - editingProduct.stock),
-            observaciones: `Actualización de producto: ${productData.nombre}`
-          }]);
-        if (movimientoError) throw movimientoError;
-
+        const updatedProducts = products.map(product => 
+          product.id === editingProduct.id ? updatedProduct : product
+        );
+        await updateProducts(updatedProducts);
         addNotification('Producto actualizado exitosamente', 'success');
       } else {
-        const { data, error } = await supabase
-          .from('productos')
-          .insert([productData])
-          .select();
-        if (error) throw error;
+        // Modo creación
+        const newProduct = {
+          id: Math.floor(Math.random() * 1000), // ID más pequeño
+          nombre: formData.nombre,
+          categoria_id: parseInt(formData.categoria_id),
+          stock: parseInt(formData.stock),
+          precio: parseFloat(formData.precio),
+          descripcion: formData.descripcion
+        };
 
-        // Registrar el movimiento de ingreso
-        const { error: movimientoError } = await supabase
-          .from('historial')
-          .insert([{
-            producto_id: data[0].id,
-            tipo_movimiento: 'entrada',
-            cantidad: productData.stock,
-            observaciones: `Nuevo producto agregado: ${productData.nombre}`
-          }]);
-        if (movimientoError) throw movimientoError;
-
+        const updatedProducts = [...products, newProduct];
+        await updateProducts(updatedProducts);
         addNotification('Producto agregado exitosamente', 'success');
       }
 
-      setFormData({
-        nombre: '',
-        stock: '',
-        precio: '',
-        categoria_id: ''
-      });
+      setFormData(initialFormState);
       setEditingProduct(null);
-      await fetchProducts();
+      setShowForm(false);
     } catch (error) {
-      console.error('Error saving product:', error);
-      addNotification('Error al guardar el producto: ' + error.message, 'error');
+      console.error('Error al guardar el producto:', error);
+      addNotification('Error al guardar el producto. Por favor, intente nuevamente.', 'error');
     }
   };
 
@@ -135,31 +124,18 @@ const ProductList = ({ onLogout }) => {
       nombre: product.nombre || '',
       stock: product.stock || '',
       precio: product.precio || '',
-      categoria_id: product.categoria_id || ''
+      categoria_id: product.categoria_id || '',
+      descripcion: product.descripcion || ''
     });
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       try {
-        // Primero eliminar los registros del historial
-        const { error: deleteHistorialError } = await supabase
-          .from('historial')
-          .delete()
-          .eq('producto_id', id);
-        
-        if (deleteHistorialError) throw deleteHistorialError;
-
-        // Luego eliminar el producto
-        const { error: deleteError } = await supabase
-          .from('productos')
-          .delete()
-          .eq('id', id);
-        
-        if (deleteError) throw deleteError;
-
+        const updatedProducts = products.filter(product => product.id !== id);
+        await updateProducts(updatedProducts);
         addNotification('Producto eliminado exitosamente', 'success');
-        await fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);
         addNotification('Error al eliminar el producto: ' + error.message, 'error');
@@ -175,24 +151,27 @@ const ProductList = ({ onLogout }) => {
     }));
   };
 
-  const filteredProducts = products.filter(product => {
-    const categoria = categories.find(cat => cat.id === product.categoria_id)?.nombre || '';
-    const searchLower = searchTerm.toLowerCase();
-    
-    // Búsqueda por nombre
-    const nombreMatch = product.nombre.toLowerCase().includes(searchLower);
-    
-    // Búsqueda por categoría
-    const categoriaMatch = categoria.toLowerCase().includes(searchLower);
-    
-    // Búsqueda por stock
-    const stockMatch = product.stock.toString().includes(searchLower);
-    
-    // Búsqueda por precio
-    const precioMatch = product.precio.toString().includes(searchLower);
-    
-    return nombreMatch || categoriaMatch || stockMatch || precioMatch;
-  });
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const truncateDescription = (text, maxWords = 30) => {
+    if (!text) return '-';
+    const words = text.split(' ');
+    if (words.length > maxWords) {
+      return words.slice(0, maxWords).join(' ') + '...';
+    }
+    return text;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Cargando productos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -239,7 +218,8 @@ const ProductList = ({ onLogout }) => {
           </div>
 
           <div className="content-grid">
-            {/* Formulario flotante */}
+            <ConnectionStatus />
+
             {showForm && (
               <div className="floating-form">
                 <div className="form-header">
@@ -317,6 +297,18 @@ const ProductList = ({ onLogout }) => {
                         required
                       />
                     </div>
+                    <div className="form-group full-width">
+                      <label htmlFor="descripcion">Descripción</label>
+                      <textarea
+                        id="descripcion"
+                        name="descripcion"
+                        className="form-input"
+                        value={formData.descripcion}
+                        onChange={handleChange}
+                        placeholder="Ingrese una descripción del producto"
+                        rows="3"
+                      />
+                    </div>
                   </div>
                   <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
@@ -327,7 +319,6 @@ const ProductList = ({ onLogout }) => {
               </div>
             )}
 
-            {/* Lista de productos */}
             <div className="products-section">
               <div className="search-section">
                 <div className="search-container">
@@ -348,74 +339,86 @@ const ProductList = ({ onLogout }) => {
               </div>
 
               <div className="table-responsive">
-                {loading ? (
-                  <div className="loading-container">
-                    <div className="loading-spinner"></div>
-                    <p>Cargando productos...</p>
-                  </div>
-                ) : (
-                  <table className="table">
-                    <thead>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Categoría</th>
+                      <th>Stock</th>
+                      <th>Precio</th>
+                      <th className="description-column">Descripción</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedProducts.length === 0 ? (
                       <tr>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Stock</th>
-                        <th>Precio</th>
-                        <th>Acciones</th>
+                        <td colSpan="6" className="no-results">
+                          No se encontraron productos
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredProducts.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="no-results">
-                            No se encontraron productos
+                    ) : (
+                      paginatedProducts.map((producto) => (
+                        <tr key={producto.id}>
+                          <td>{producto.nombre}</td>
+                          <td>
+                            {categories.find(cat => cat.id === producto.categoria_id)?.nombre || 'Sin categoría'}
+                          </td>
+                          <td>
+                            <span className={`stock-badge ${producto.stock < 10 ? 'low-stock' : ''}`}>
+                              {producto.stock}
+                            </span>
+                          </td>
+                          <td>${producto.precio.toLocaleString('es-CO')}</td>
+                          <td className="description-column" title={producto.descripcion || '-'}>
+                            {truncateDescription(producto.descripcion)}
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() => handleEdit(producto)}
+                                title="Editar producto"
+                              >
+                                <FaEdit />
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleDelete(producto.id)}
+                                title="Eliminar producto"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      ) : (
-                        filteredProducts.map((producto) => (
-                          <tr key={producto.id}>
-                            <td>{producto.nombre}</td>
-                            <td>{producto.categoria}</td>
-                            <td>
-                              <span className={`stock-badge ${producto.stock < 10 ? 'low-stock' : ''}`}>
-                                {producto.stock}
-                              </span>
-                            </td>
-                            <td>${producto.precio.toLocaleString('es-CO')}</td>
-                            <td>
-                              <div className="action-buttons">
-                                <button
-                                  className="btn btn-secondary"
-                                  onClick={() => {
-                                    setEditingProduct(producto);
-                                    setFormData({
-                                      nombre: producto.nombre || '',
-                                      stock: producto.stock || '',
-                                      precio: producto.precio || '',
-                                      categoria_id: producto.categoria_id || ''
-                                    });
-                                    setShowForm(true);
-                                  }}
-                                  title="Editar producto"
-                                >
-                                  <FaEdit />
-                                </button>
-                                <button
-                                  className="btn btn-danger"
-                                  onClick={() => handleDelete(producto.id)}
-                                  title="Eliminar producto"
-                                >
-                                  <FaTrash />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                )}
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
+
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <FaChevronLeft /> Anterior
+                  </button>
+                  <span className="page-info">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente <FaChevronRight />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

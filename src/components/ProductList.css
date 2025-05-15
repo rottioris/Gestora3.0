@@ -205,35 +205,81 @@
   font-size: 0.875rem;
 }
 
+.description-column {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description-column:hover {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
 .table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   margin-top: 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  table-layout: fixed;
 }
 
 .table th,
 .table td {
-  padding: 1.25rem;
+  padding: 0.75rem;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.table th {
-  font-weight: 600;
-  color: #4a5568;
-  background: #f8fafc;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.table th:nth-child(1), /* Nombre */
+.table td:nth-child(1) {
+  width: 25%;
 }
 
-.table tr:hover {
-  background: #f8fafc;
+.table th:nth-child(2), /* Categoría */
+.table td:nth-child(2) {
+  width: 20%;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 10% !important;
+  text-align: center;
+}
+
+.table th:nth-child(4), /* Precio */
+.table td:nth-child(4) {
+  width: 15%;
+  text-align: right;
+}
+
+.table th:nth-child(5), /* Descripción */
+.table td:nth-child(5) {
+  width: 20%;
+}
+
+.table th:nth-child(6), /* Acciones */
+.table td:nth-child(6) {
+  width: 10%;
+  text-align: center;
+}
+
+.table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 1rem;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .stock-badge {
@@ -253,17 +299,26 @@
 .action-buttons {
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
+}
+
+.action-buttons .btn svg {
+  width: 2em !important;  /* 100% más grande que el tamaño base */
+  height: 2em !important; /* 100% más grande que el tamaño base */
+  vertical-align: middle;
 }
 
 .btn {
+  padding: 12px 24px !important;  /* Aumentado el padding */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: all 0.2s;
-  cursor: pointer;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-primary {
@@ -296,15 +351,13 @@
   background: #fecaca;
 }
 
+.action-buttons .btn {
+  padding: 8px 16px !important;  /* Padding específico para botones de acción */
+}
+
 .add-product-btn {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-}
-
-.table-responsive {
-  overflow-x: auto;
-  margin: 0 -2rem;
-  padding: 0 2rem;
 }
 
 .no-results {
@@ -391,4 +444,9 @@
   color: #64748b;
   font-size: 0.95rem;
   margin: 0;
+}
+
+.btn-icon {
+  width: 1.25rem !important;  /* 5% más grande que el tamaño base */
+  height: 1.25rem !important; /* 5% más grande que el tamaño base */
 } 
