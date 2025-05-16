@@ -6,9 +6,10 @@ Cualquier uso no autorizado será considerado una violación de los derechos de 
 # 👨‍💻 DESARROLLADO POR
 Este código fue desarrollado por:
 
-# 👨‍💻  Luis (BenDrowned11)
-# 👨‍💻  Cristian (rottioris)
+👨‍💻  Luis (BenDrowned11)
+👨‍💻  Cristian (rottioris)
 
+-------------------------------------
 
 # Getting Started with Create React App
 
