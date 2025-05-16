@@ -1,8 +1,12 @@
 # ACUERDO LEGAL
-Solo Rottioris puede hacer uso de este proyecto, si alguien quiere utilizarlos con fines propios tendrá que contactarse 
+Solo Rottioris puede hacer uso de este proyecto, si alguien quiere utilizarlo con fines propios tendrá que contactarse con el propietario. 
 
 
-# CODIO POR LUIS Y CRISTIAN 
+# CODIO ESCRITO POR LUIS Y CRISTIAN
+Este código fue escrito solamente por Luis y Cristian, estudiantes de la CUN.
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
