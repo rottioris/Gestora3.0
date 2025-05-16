@@ -2,7 +2,7 @@
 Solo Rottioris puede hacer uso de este proyecto, si alguien quiere utilizarlo con fines propios tendrá que contactarse con el propietario. 
 
 
-# CODIO ESCRITO POR LUIS Y CRISTIAN
+# CODIGO ESCRITO POR LUIS Y CRISTIAN
 Este código fue escrito solamente por Luis y Cristian, estudiantes de la CUN.
 
 
