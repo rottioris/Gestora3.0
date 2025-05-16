@@ -1,10 +1,13 @@
-# ACUERDO LEGAL
-Solo Rottioris puede hacer uso de este proyecto, si alguien quiere utilizarlo con fines propios tendrá que contactarse con el propietario. 
+# 🛑 ACUERDO LEGAL
+### Este proyecto es de uso exclusivo de Rottioris.
+Ninguna otra persona o entidad está autorizada a utilizar, modificar o distribuir este repositorio sin el consentimiento explícito del propietario.
+Cualquier uso no autorizado será considerado una violación de los derechos de autor y estará sujeto a acciones legales.
 
+# 👨‍💻 DESARROLLADO POR
+Este código fue desarrollado por:
 
-# CODIGO ESCRITO POR LUIS Y CRISTIAN
-Este código fue escrito solamente por Luis y Cristian, estudiantes de la CUN.
-
+# 👨‍💻  Luis (BenDrowned11)
+# 👨‍💻  Cristian (rottioris)
 
 
 # Getting Started with Create React App
