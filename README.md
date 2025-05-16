@@ -1,6 +1,8 @@
 # ACUERDO LEGAL
 Solo Rottioris puede hacer uso de este proyecto, si alguien quiere utilizarlos con fines propios tendrá que contactarse 
 
+
+# CODIO POR LUIS Y CRISTIAN 
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
